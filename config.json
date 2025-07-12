@@ -81,6 +81,18 @@
       "api": "https://cjhwba.com/api.php/provide/vod",
       "name": "华为吧"
     },
+    "maotai": {
+      "api": "https://caiji.maotaizy.cc/api.php/provide/vod",
+      "name": "茅台资源"
+    },
+    "iqiyi": {
+      "api": "https://iqiyizyapi.com/api.php/provide/vod",
+      "name": "爱奇艺"
+    },
+    "fczy": {
+      "api": "https://api.fczy888.me/api.php/provide/vod",
+      "name": "蜂巢片库"
+    },
     "baidu": {
       "api": "https://api.apibdzy.com/api.php/provide/vod",
       "name": "百度云"
@@ -116,6 +128,26 @@
     "xiaoji": {
       "api": "https://api.xiaojizy.live/provide/vod",
       "name": "小鸟资源"
+    },
+    "xxibao": {
+      "api": "https://www.xxibaozyw.com/api.php/provide/vod",
+      "name": "X细胞"
+    },
+    "fanqie": {
+      "api": "https://fqzy.me//api.php/provide/vod",
+      "name": "番茄资源"
+    },
+    "siwa": {
+      "api": "https://siwazyw.tv/api.php/provide/vod",
+      "name": "丝袜资源"
+    },
+    "155": {
+      "api": "https://155api.com/api.php/provide/vod",
+      "name": "155资源"
+    },
+    "naixx": {
+      "api": "https://naixxzy.com/api.php/provide/vod",
+      "name": "M香资源"
     },
     "kuaibo": {
       "api": "https://gayapi.com/api.php/provide/vod",
