@@ -77,49 +77,49 @@
       "api": "https://ikunzyapi.com/api.php/provide/vod",
       "name": "iKun资源"
     },
-    "hwba": {
-      "api": "https://cjhwba.com/api.php/provide/vod",
-      "name": "华为吧"
-    },
-    "baidu": {
-      "api": "https://api.apibdzy.com/api.php/provide/vod",
-      "name": "百度云"
-    },
-    "ckzy": {
-      "api": "https://ckzy.me/api.php/provide/vod",
-      "name": "CK资源"
-    },
-    "jkun": {
-      "api": "https://jkunzyapi.com/api.php/provide/vod",
-      "name": "jkun资源"
-    },
-    "ouav": {
-      "api": "https://api.souavzy.vip/api.php/provide/vod",
-      "name": "souav资源"
-    },
-    "huangcang": {
-      "api": "https://hsckzy.vip/api.php/provide/vod",
-      "name": "颜色仓库"
-    },
-    "yutu": {
-      "api": "https://apiyutu.com/api.php/provide/vod",
-      "name": "玉兔资源"
-    },
-    "xingba": {
-      "api": "https://xingba111.com/api.php/provide/vod",
-      "name": "杏吧资源"
-    },
-    "dnz": {
-      "api": "https://apidanaizi.com/api.php/provide/vod",
-      "name": "danz"
-    },
-    "xiaoji": {
-      "api": "https://api.xiaojizy.live/provide/vod",
-      "name": "小鸟资源"
-    },
-    "kuaibo": {
-      "api": "https://gayapi.com/api.php/provide/vod",
-      "name": "快播资源"
-    }
+    "hwba": {
+      "api": "https://cjhwba.com/api.php/provide/vod",
+      "name": "华为吧"
+    },
+    "baidu": {
+      "api": "https://api.apibdzy.com/api.php/provide/vod",
+      "name": "百度云"
+    },
+    "ckzy": {
+      "api": "https://ckzy.me/api.php/provide/vod",
+      "name": "CK资源"
+    },
+    "jkun": {
+      "api": "https://jkunzyapi.com/api.php/provide/vod",
+      "name": "jkun资源"
+    },
+    "ouav": {
+      "api": "https://api.souavzy.vip/api.php/provide/vod",
+      "name": "souav资源"
+    },
+    "huangcang": {
+      "api": "https://hsckzy.vip/api.php/provide/vod",
+      "name": "颜色仓库"
+    },
+    "yutu": {
+      "api": "https://apiyutu.com/api.php/provide/vod",
+      "name": "玉兔资源"
+    },
+    "xingba": {
+      "api": "https://xingba111.com/api.php/provide/vod",
+      "name": "杏吧资源"
+    },
+    "dnz": {
+      "api": "https://apidanaizi.com/api.php/provide/vod",
+      "name": "danz"
+    },
+    "xiaoji": {
+      "api": "https://api.xiaojizy.live/provide/vod",
+      "name": "小鸟资源"
+    },
+    "kuaibo": {
+      "api": "https://gayapi.com/api.php/provide/vod",
+      "name": "快播资源"
+    }
   }
 }
