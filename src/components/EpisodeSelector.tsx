@@ -10,7 +10,7 @@ import React, {
 } from 'react';
 
 import { SearchResult } from '@/lib/types';
-import { getVideoResolutionFromM3u8 } from '@/lib/utils';
+import { getVideoResolutionFromM3u8, processImageUrl } from '@/lib/utils';
 
 // 定义视频信息类型
 interface VideoInfo {
@@ -36,7 +36,6 @@ interface EpisodeSelectorProps {
   videoTitle?: string;
   videoYear?: string;
   availableSources?: SearchResult[];
-  onSearchSources?: (query: string) => void;
   sourceSearchLoading?: boolean;
   sourceSearchError?: string | null;
   /** 预计算的测速结果，避免重复测速 */
@@ -56,7 +55,6 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   currentId,
   videoTitle,
   availableSources = [],
-  onSearchSources,
   sourceSearchLoading = false,
   sourceSearchError = null,
   precomputedVideoInfo,
@@ -207,11 +205,25 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   // 当分页切换时，将激活的分页标签滚动到视口中间
   useEffect(() => {
     const btn = buttonRefs.current[currentPage];
-    if (btn) {
-      btn.scrollIntoView({
+    const container = categoryContainerRef.current;
+    if (btn && container) {
+      // 手动计算滚动位置，只滚动分页标签容器
+      const containerRect = container.getBoundingClientRect();
+      const btnRect = btn.getBoundingClientRect();
+      const scrollLeft = container.scrollLeft;
+
+      // 计算按钮相对于容器的位置
+      const btnLeft = btnRect.left - containerRect.left + scrollLeft;
+      const btnWidth = btnRect.width;
+      const containerWidth = containerRect.width;
+
+      // 计算目标滚动位置，使按钮居中
+      const targetScrollLeft = btnLeft - (containerWidth - btnWidth) / 2;
+
+      // 平滑滚动到目标位置
+      container.scrollTo({
+        left: targetScrollLeft,
         behavior: 'smooth',
-        inline: 'center',
-        block: 'nearest',
       });
     }
   }, [currentPage, pageCount]);
@@ -219,10 +231,6 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
   // 处理换源tab点击，只在点击时才搜索
   const handleSourceTabClick = () => {
     setActiveTab('sources');
-    // 只在点击时搜索，且只搜索一次
-    if (availableSources.length === 0 && videoTitle && onSearchSources) {
-      onSearchSources(videoTitle);
-    }
   };
 
   const handleCategoryClick = useCallback((index: number) => {
@@ -242,20 +250,6 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
     },
     [onSourceChange]
   );
-
-  // 如果组件初始即显示 "换源"，自动触发搜索一次
-  useEffect(() => {
-    if (
-      activeTab === 'sources' &&
-      availableSources.length === 0 &&
-      videoTitle &&
-      onSearchSources
-    ) {
-      onSearchSources(videoTitle);
-    }
-    // 只在依赖变化时尝试，availableSources 长度变化可阻止重复搜索
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, availableSources.length, videoTitle]);
 
   const currentStart = currentPage * episodesPerPage + 1;
   const currentEnd = Math.min(
@@ -433,7 +427,7 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
                     if (!aIsCurrent && bIsCurrent) return 1;
                     return 0;
                   })
-                  .map((source) => {
+                  .map((source, index) => {
                     const isCurrentSource =
                       source.source?.toString() === currentSource?.toString() &&
                       source.id?.toString() === currentId?.toString();
@@ -443,7 +437,7 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
                         onClick={() =>
                           !isCurrentSource && handleSourceClick(source)
                         }
-                        className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 
+                        className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 relative
                       ${
                         isCurrentSource
                           ? 'bg-green-500/10 dark:bg-green-500/20 border-green-500/30 border'
@@ -454,7 +448,7 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
                         <div className='flex-shrink-0 w-12 h-20 bg-gray-300 dark:bg-gray-600 rounded overflow-hidden'>
                           {source.episodes && source.episodes.length > 0 && (
                             <img
-                              src={source.poster}
+                              src={processImageUrl(source.poster)}
                               alt={source.title}
                               className='w-full h-full object-cover'
                               onError={(e) => {
@@ -469,9 +463,18 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
                         <div className='flex-1 min-w-0 flex flex-col justify-between h-20'>
                           {/* 标题和分辨率 - 顶部 */}
                           <div className='flex items-start justify-between gap-2 h-6'>
-                            <h3 className='font-medium text-base truncate text-gray-900 dark:text-gray-100 leading-none'>
-                              {source.title}
-                            </h3>
+                            <div className='flex-1 relative group/title'>
+                              <h3 className='font-medium text-base truncate text-gray-900 dark:text-gray-100 leading-none'>
+                                {source.title}
+                              </h3>
+                              {/* 标题级别的 tooltip - 第一个元素不显示 */}
+                              {index !== 0 && (
+                                <div className='absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1 bg-gray-800 text-white text-xs rounded-md shadow-lg opacity-0 invisible group-hover/title:opacity-100 group-hover/title:visible transition-all duration-200 ease-out delay-100 whitespace-nowrap z-[9999] pointer-events-none'>
+                                  {source.title}
+                                  <div className='absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800'></div>
+                                </div>
+                              )}
+                            </div>
                             {(() => {
                               const sourceKey = `${source.source}-${source.id}`;
                               const videoInfo = videoInfoMap.get(sourceKey);
@@ -484,13 +487,16 @@ const EpisodeSelector: React.FC<EpisodeSelectorProps> = ({
                                     </div>
                                   );
                                 } else {
-                                  // 根据分辨率设置不同颜色：1080p及以上为绿色，720p及以下为黄色
-                                  const isHighRes = [
-                                    '4K',
-                                    '2K',
-                                    '1080p',
-                                  ].includes(videoInfo.quality);
-                                  const textColorClasses = isHighRes
+                                  // 根据分辨率设置不同颜色：2K、4K为紫色，1080p、720p为绿色，其他为黄色
+                                  const isUltraHigh = ['4K', '2K'].includes(
+                                    videoInfo.quality
+                                  );
+                                  const isHigh = ['1080p', '720p'].includes(
+                                    videoInfo.quality
+                                  );
+                                  const textColorClasses = isUltraHigh
+                                    ? 'text-purple-600 dark:text-purple-400'
+                                    : isHigh
                                     ? 'text-green-600 dark:text-green-400'
                                     : 'text-yellow-600 dark:text-yellow-400';
 

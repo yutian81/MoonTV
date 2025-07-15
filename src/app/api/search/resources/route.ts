@@ -7,8 +7,8 @@ export const runtime = 'edge';
 // OrionTV 兼容接口
 export async function GET() {
   try {
-    const apiSites = getAvailableApiSites();
-    const cacheTime = getCacheTime();
+    const apiSites = await getAvailableApiSites();
+    const cacheTime = await getCacheTime();
 
     return NextResponse.json(apiSites, {
       headers: {

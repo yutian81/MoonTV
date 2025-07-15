@@ -10,6 +10,7 @@ import {
   clearSearchHistory,
   deleteSearchHistory,
   getSearchHistory,
+  subscribeToDataUpdates,
 } from '@/lib/db.client';
 import { SearchResult } from '@/lib/types';
 
@@ -27,48 +28,83 @@ function SearchPageClient() {
   const [showResults, setShowResults] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
 
-  // 视图模式：聚合(agg) 或 全部(all)，默认值由环境变量 NEXT_PUBLIC_AGGREGATE_SEARCH_RESULT 决定
-  const defaultAggregate =
-    typeof window !== 'undefined' &&
-    Boolean((window as any).RUNTIME_CONFIG?.AGGREGATE_SEARCH_RESULT);
+  // 获取默认聚合设置：只读取用户本地设置，默认为 true
+  const getDefaultAggregate = () => {
+    if (typeof window !== 'undefined') {
+      const userSetting = localStorage.getItem('defaultAggregateSearch');
+      if (userSetting !== null) {
+        return JSON.parse(userSetting);
+      }
+    }
+    return true; // 默认启用聚合
+  };
 
-  const [viewMode, setViewMode] = useState<'agg' | 'all'>(
-    defaultAggregate ? 'agg' : 'all'
-  );
+  const [viewMode, setViewMode] = useState<'agg' | 'all'>(() => {
+    return getDefaultAggregate() ? 'agg' : 'all';
+  });
 
   // 聚合后的结果（按标题和年份分组）
   const aggregatedResults = useMemo(() => {
     const map = new Map<string, SearchResult[]>();
     searchResults.forEach((item) => {
       // 使用 title + year + type 作为键，year 必然存在，但依然兜底 'unknown'
-      const key = `${item.title}-${item.year || 'unknown'}-${
-        item.episodes.length === 1 ? 'movie' : 'tv'
-      }`;
+      const key = `${item.title.replaceAll(' ', '')}-${
+        item.year || 'unknown'
+      }-${item.episodes.length === 1 ? 'movie' : 'tv'}`;
       const arr = map.get(key) || [];
       arr.push(item);
       map.set(key, arr);
     });
     return Array.from(map.entries()).sort((a, b) => {
       // 优先排序：标题与搜索词完全一致的排在前面
-      const aExactMatch = a[1][0].title === searchQuery.trim();
-      const bExactMatch = b[1][0].title === searchQuery.trim();
+      const aExactMatch = a[1][0].title
+        .replaceAll(' ', '')
+        .includes(searchQuery.trim().replaceAll(' ', ''));
+      const bExactMatch = b[1][0].title
+        .replaceAll(' ', '')
+        .includes(searchQuery.trim().replaceAll(' ', ''));
 
       if (aExactMatch && !bExactMatch) return -1;
       if (!aExactMatch && bExactMatch) return 1;
 
-      // 如果都匹配或都不匹配，则按原来的逻辑排序
-      return a[1][0].year === b[1][0].year
-        ? a[0].localeCompare(b[0])
-        : a[1][0].year > b[1][0].year
-        ? -1
-        : 1;
+      // 年份排序
+      if (a[1][0].year === b[1][0].year) {
+        return a[0].localeCompare(b[0]);
+      } else {
+        // 处理 unknown 的情况
+        const aYear = a[1][0].year;
+        const bYear = b[1][0].year;
+
+        if (aYear === 'unknown' && bYear === 'unknown') {
+          return 0;
+        } else if (aYear === 'unknown') {
+          return 1; // a 排在后面
+        } else if (bYear === 'unknown') {
+          return -1; // b 排在后面
+        } else {
+          // 都是数字年份，按数字大小排序（大的在前面）
+          return aYear > bYear ? -1 : 1;
+        }
+      }
     });
   }, [searchResults]);
 
   useEffect(() => {
     // 无搜索参数时聚焦搜索框
     !searchParams.get('q') && document.getElementById('searchInput')?.focus();
+
+    // 初始加载搜索历史
     getSearchHistory().then(setSearchHistory);
+
+    // 监听搜索历史更新事件
+    const unsubscribe = subscribeToDataUpdates(
+      'searchHistoryUpdated',
+      (newHistory: string[]) => {
+        setSearchHistory(newHistory);
+      }
+    );
+
+    return unsubscribe;
   }, []);
 
   useEffect(() => {
@@ -78,11 +114,8 @@ function SearchPageClient() {
       setSearchQuery(query);
       fetchSearchResults(query);
 
-      // 保存到搜索历史
-      addSearchHistory(query).then(async () => {
-        const history = await getSearchHistory();
-        setSearchHistory(history);
-      });
+      // 保存到搜索历史 (事件监听会自动更新界面)
+      addSearchHistory(query);
     } else {
       setShowResults(false);
     }
@@ -105,11 +138,21 @@ function SearchPageClient() {
           if (!aExactMatch && bExactMatch) return 1;
 
           // 如果都匹配或都不匹配，则按原来的逻辑排序
-          return a.year === b.year
-            ? a.title.localeCompare(b.title)
-            : a.year > b.year
-            ? -1
-            : 1;
+          if (a.year === b.year) {
+            return a.title.localeCompare(b.title);
+          } else {
+            // 处理 unknown 的情况
+            if (a.year === 'unknown' && b.year === 'unknown') {
+              return 0;
+            } else if (a.year === 'unknown') {
+              return 1; // a 排在后面
+            } else if (b.year === 'unknown') {
+              return -1; // b 排在后面
+            } else {
+              // 都是数字年份，按数字大小排序（大的在前面）
+              return parseInt(a.year) > parseInt(b.year) ? -1 : 1;
+            }
+          }
         })
       );
       setShowResults(true);
@@ -134,11 +177,8 @@ function SearchPageClient() {
     // 直接发请求
     fetchSearchResults(trimmed);
 
-    // 保存到搜索历史
-    addSearchHistory(trimmed).then(async () => {
-      const history = await getSearchHistory();
-      setSearchHistory(history);
-    });
+    // 保存到搜索历史 (事件监听会自动更新界面)
+    addSearchHistory(trimmed);
   };
 
   return (
@@ -249,9 +289,8 @@ function SearchPageClient() {
                 搜索历史
                 {searchHistory.length > 0 && (
                   <button
-                    onClick={async () => {
-                      await clearSearchHistory();
-                      setSearchHistory([]);
+                    onClick={() => {
+                      clearSearchHistory(); // 事件监听会自动更新界面
                     }}
                     className='ml-3 text-sm text-gray-500 hover:text-red-500 transition-colors dark:text-gray-400 dark:hover:text-red-500'
                   >
@@ -276,12 +315,10 @@ function SearchPageClient() {
                     {/* 删除按钮 */}
                     <button
                       aria-label='删除搜索历史'
-                      onClick={async (e) => {
+                      onClick={(e) => {
                         e.stopPropagation();
                         e.preventDefault();
-                        await deleteSearchHistory(item);
-                        const history = await getSearchHistory();
-                        setSearchHistory(history);
+                        deleteSearchHistory(item); // 事件监听会自动更新界面
                       }}
                       className='absolute -top-1 -right-1 w-4 h-4 opacity-0 group-hover:opacity-100 bg-gray-400 hover:bg-red-500 text-white rounded-full flex items-center justify-center text-[10px] transition-colors'
                     >

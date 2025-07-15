@@ -23,13 +23,13 @@ export async function middleware(request: NextRequest) {
   const authInfo = getAuthInfoFromCookie(request);
 
   if (!authInfo) {
-    return redirectToLogin(request, pathname);
+    return handleAuthFailure(request, pathname);
   }
 
   // localstorage模式：在middleware中完成验证
   if (storageType === 'localstorage') {
     if (!authInfo.password || authInfo.password !== process.env.PASSWORD) {
-      return redirectToLogin(request, pathname);
+      return handleAuthFailure(request, pathname);
     }
     return NextResponse.next();
   }
@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
   // 其他模式：只验证签名
   // 检查是否有用户名（非localStorage模式下密码不存储在cookie中）
   if (!authInfo.username || !authInfo.signature) {
-    return redirectToLogin(request, pathname);
+    return handleAuthFailure(request, pathname);
   }
 
   // 验证签名（如果存在）
@@ -55,7 +55,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // 签名验证失败或不存在签名
-  return redirectToLogin(request, pathname);
+  return handleAuthFailure(request, pathname);
 }
 
 // 验证签名
@@ -96,8 +96,17 @@ async function verifySignature(
   }
 }
 
-// 重定向到登录页面
-function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
+// 处理认证失败的情况
+function handleAuthFailure(
+  request: NextRequest,
+  pathname: string
+): NextResponse {
+  // 如果是 API 路由，返回 401 状态码
+  if (pathname.startsWith('/api')) {
+    return new NextResponse('Unauthorized', { status: 401 });
+  }
+
+  // 否则重定向到登录页面
   const loginUrl = new URL('/login', request.url);
   // 保留完整的URL，包括查询参数
   const fullUrl = `${pathname}${request.nextUrl.search}`;
@@ -108,11 +117,6 @@ function redirectToLogin(request: NextRequest, pathname: string): NextResponse {
 // 判断是否需要跳过认证的路径
 function shouldSkipAuth(pathname: string): boolean {
   const skipPaths = [
-    '/login',
-    '/api/login',
-    '/api/register',
-    '/api/logout',
-    '/api/server-config',
     '/_next',
     '/favicon.ico',
     '/robots.txt',
@@ -128,6 +132,6 @@ function shouldSkipAuth(pathname: string): boolean {
 // 配置middleware匹配规则
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|api/detail|api/search|api/image-proxy|api/douban).*)',
+    '/((?!_next/static|_next/image|favicon.ico|login|api/login|api/register|api/logout|api/cron|api/server-config).*)',
   ],
 };

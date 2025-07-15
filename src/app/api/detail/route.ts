@@ -19,7 +19,7 @@ export async function GET(request: Request) {
   }
 
   try {
-    const apiSites = getAvailableApiSites();
+    const apiSites = await getAvailableApiSites();
     const apiSite = apiSites.find((site) => site.key === sourceCode);
 
     if (!apiSite) {
@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     }
 
     const result = await getDetailFromApi(apiSite, id);
-    const cacheTime = getCacheTime();
+    const cacheTime = await getCacheTime();
 
     return NextResponse.json(result, {
       headers: {

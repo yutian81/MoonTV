@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps, no-console */
+
 'use client';
 
 import { ChevronRight } from 'lucide-react';
@@ -9,8 +11,10 @@ import {
   clearAllFavorites,
   getAllFavorites,
   getAllPlayRecords,
+  subscribeToDataUpdates,
 } from '@/lib/db.client';
-import { DoubanItem, DoubanResult } from '@/lib/types';
+import { getDoubanData } from '@/lib/douban.client';
+import { DoubanItem } from '@/lib/types';
 
 import CapsuleSwitch from '@/components/CapsuleSwitch';
 import ContinueWatching from '@/components/ContinueWatching';
@@ -60,20 +64,20 @@ function HomeClient() {
         setLoading(true);
 
         // 并行获取热门电影和热门剧集
-        const [moviesResponse, tvShowsResponse] = await Promise.all([
-          fetch('/api/douban?type=movie&tag=热门'),
-          fetch('/api/douban?type=tv&tag=热门'),
+        const [moviesData, tvShowsData] = await Promise.all([
+          getDoubanData({ type: 'movie', tag: '热门' }),
+          getDoubanData({ type: 'tv', tag: '热门' }),
         ]);
 
-        if (moviesResponse.ok) {
-          const moviesData: DoubanResult = await moviesResponse.json();
+        if (moviesData.code === 200) {
           setHotMovies(moviesData.list);
         }
 
-        if (tvShowsResponse.ok) {
-          const tvShowsData: DoubanResult = await tvShowsResponse.json();
+        if (tvShowsData.code === 200) {
           setHotTvShows(tvShowsData.list);
         }
+      } catch (error) {
+        console.error('获取豆瓣数据失败:', error);
       } finally {
         setLoading(false);
       }
@@ -82,42 +86,57 @@ function HomeClient() {
     fetchDoubanData();
   }, []);
 
+  // 处理收藏数据更新的函数
+  const updateFavoriteItems = async (allFavorites: Record<string, any>) => {
+    const allPlayRecords = await getAllPlayRecords();
+
+    // 根据保存时间排序（从近到远）
+    const sorted = Object.entries(allFavorites)
+      .sort(([, a], [, b]) => b.save_time - a.save_time)
+      .map(([key, fav]) => {
+        const plusIndex = key.indexOf('+');
+        const source = key.slice(0, plusIndex);
+        const id = key.slice(plusIndex + 1);
+
+        // 查找对应的播放记录，获取当前集数
+        const playRecord = allPlayRecords[key];
+        const currentEpisode = playRecord?.index;
+
+        return {
+          id,
+          source,
+          title: fav.title,
+          year: fav.year,
+          poster: fav.cover,
+          episodes: fav.total_episodes,
+          source_name: fav.source_name,
+          currentEpisode,
+          search_title: fav?.search_title,
+        } as FavoriteItem;
+      });
+    setFavoriteItems(sorted);
+  };
+
   // 当切换到收藏夹时加载收藏数据
   useEffect(() => {
     if (activeTab !== 'favorites') return;
 
-    (async () => {
-      const [allFavorites, allPlayRecords] = await Promise.all([
-        getAllFavorites(),
-        getAllPlayRecords(),
-      ]);
+    const loadFavorites = async () => {
+      const allFavorites = await getAllFavorites();
+      await updateFavoriteItems(allFavorites);
+    };
 
-      // 根据保存时间排序（从近到远）
-      const sorted = Object.entries(allFavorites)
-        .sort(([, a], [, b]) => b.save_time - a.save_time)
-        .map(([key, fav]) => {
-          const plusIndex = key.indexOf('+');
-          const source = key.slice(0, plusIndex);
-          const id = key.slice(plusIndex + 1);
+    loadFavorites();
 
-          // 查找对应的播放记录，获取当前集数
-          const playRecord = allPlayRecords[key];
-          const currentEpisode = playRecord?.index;
+    // 监听收藏更新事件
+    const unsubscribe = subscribeToDataUpdates(
+      'favoritesUpdated',
+      (newFavorites: Record<string, any>) => {
+        updateFavoriteItems(newFavorites);
+      }
+    );
 
-          return {
-            id,
-            source,
-            title: fav.title,
-            year: fav.year,
-            poster: fav.cover,
-            episodes: fav.total_episodes,
-            source_name: fav.source_name,
-            currentEpisode,
-            search_title: fav?.search_title,
-          } as FavoriteItem;
-        });
-      setFavoriteItems(sorted);
-    })();
+    return unsubscribe;
   }, [activeTab]);
 
   const handleCloseAnnouncement = (announcement: string) => {

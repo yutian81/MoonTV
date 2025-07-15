@@ -4,7 +4,8 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { useEffect, useRef, useState } from 'react';
 
-import { DoubanItem, DoubanResult } from '@/lib/types';
+import { getDoubanData } from '@/lib/douban.client';
+import { DoubanItem } from '@/lib/types';
 
 import DoubanCardSkeleton from '@/components/DoubanCardSkeleton';
 import PageLayout from '@/components/PageLayout';
@@ -45,15 +46,12 @@ function DoubanPageClient() {
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(
-          `/api/douban?type=${type}&tag=${tag}&pageSize=25&pageStart=0`
-        );
-
-        if (!response.ok) {
-          throw new Error('获取豆瓣数据失败');
-        }
-
-        const data: DoubanResult = await response.json();
+        const data = await getDoubanData({
+          type: type as 'tv' | 'movie',
+          tag,
+          pageSize: 25,
+          pageStart: 0,
+        });
 
         if (data.code === 200) {
           setDoubanData(data.list);
@@ -78,17 +76,12 @@ function DoubanPageClient() {
         try {
           setIsLoadingMore(true);
 
-          const response = await fetch(
-            `/api/douban?type=${type}&tag=${tag}&pageSize=25&pageStart=${
-              currentPage * 25
-            }`
-          );
-
-          if (!response.ok) {
-            throw new Error('获取豆瓣数据失败');
-          }
-
-          const data: DoubanResult = await response.json();
+          const data = await getDoubanData({
+            type: type as 'tv' | 'movie',
+            tag,
+            pageSize: 25,
+            pageStart: currentPage * 25,
+          });
 
           if (data.code === 200) {
             setDoubanData((prev) => [...prev, ...data.list]);

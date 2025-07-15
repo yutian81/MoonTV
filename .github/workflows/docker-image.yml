@@ -41,3 +41,13 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/moontv:latest
             ghcr.io/${{ github.repository_owner }}/moontv:${{ github.sha }} 
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          repository: ${{ github.repository }}
+          retain_days: 0
+          keep_minimum_runs: 2

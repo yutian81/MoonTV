@@ -4,7 +4,6 @@ export interface AdminConfig {
     Announcement: string;
     SearchDownstreamMaxPage: number;
     SiteInterfaceCacheTime: number;
-    SearchResultDefaultAggregate: boolean;
   };
   UserConfig: {
     AllowRegister: boolean;

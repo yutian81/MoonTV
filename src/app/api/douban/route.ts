@@ -108,7 +108,7 @@ export async function GET(request: Request) {
       list: list,
     };
 
-    const cacheTime = getCacheTime();
+    const cacheTime = await getCacheTime();
     return NextResponse.json(response, {
       headers: {
         'Cache-Control': `public, max-age=${cacheTime}`,
@@ -180,7 +180,7 @@ function handleTop250(pageStart: number) {
         list: movies,
       };
 
-      const cacheTime = getCacheTime();
+      const cacheTime = await getCacheTime();
       return NextResponse.json(apiResponse, {
         headers: {
           'Cache-Control': `public, max-age=${cacheTime}`,

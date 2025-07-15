@@ -48,6 +48,10 @@ export interface IStorage {
   verifyUser(userName: string, password: string): Promise<boolean>;
   // 检查用户是否存在（无需密码）
   checkUserExist(userName: string): Promise<boolean>;
+  // 修改用户密码
+  changePassword(userName: string, newPassword: string): Promise<void>;
+  // 删除用户（包括密码、搜索历史、播放记录、收藏夹）
+  deleteUser(userName: string): Promise<void>;
 
   // 搜索历史相关
   getSearchHistory(userName: string): Promise<string[]>;
@@ -60,27 +64,6 @@ export interface IStorage {
   // 管理员配置相关
   getAdminConfig(): Promise<AdminConfig | null>;
   setAdminConfig(config: AdminConfig): Promise<void>;
-}
-
-// 视频详情数据结构
-export interface VideoDetail {
-  code: number;
-  episodes: string[];
-  detailUrl: string;
-  videoInfo: {
-    title: string;
-    cover?: string;
-    desc?: string;
-    type?: string;
-    year?: string;
-    area?: string;
-    director?: string;
-    actor?: string;
-    remarks?: string;
-    source_name: string;
-    source: string;
-    id: string;
-  };
 }
 
 // 搜索结果数据结构

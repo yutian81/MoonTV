@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const resourceId = searchParams.get('resourceId');
 
   if (!query || !resourceId) {
-    const cacheTime = getCacheTime();
+    const cacheTime = await getCacheTime();
     return NextResponse.json(
       { result: null, error: '缺少必要参数: q 或 resourceId' },
       {
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const apiSites = getAvailableApiSites();
+  const apiSites = await getAvailableApiSites();
 
   try {
     // 根据 resourceId 查找对应的 API 站点
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
 
     const results = await searchFromApi(targetSite, query);
     const result = results.filter((r) => r.title === query);
-    const cacheTime = getCacheTime();
+    const cacheTime = await getCacheTime();
 
     if (result.length === 0) {
       return NextResponse.json(
