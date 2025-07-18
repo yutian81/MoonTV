@@ -105,10 +105,6 @@
       "api": "https://jkunzyapi.com/api.php/provide/vod",
       "name": "jkun资源"
     },
-    "ouav": {
-      "api": "https://api.souavzy.vip/api.php/provide/vod",
-      "name": "souav资源"
-    },
     "huangcang": {
       "api": "https://hsckzy.vip/api.php/provide/vod",
       "name": "颜色仓库"
