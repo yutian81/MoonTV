@@ -89,12 +89,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const favoriteWithoutUserId = {
+    const finalFavorite = {
       ...favorite,
       save_time: favorite.save_time ?? Date.now(),
-    } as Omit<Favorite, 'user_id'>;
+    } as Favorite;
 
-    await db.saveFavorite(authInfo.username, source, id, favoriteWithoutUserId);
+    await db.saveFavorite(authInfo.username, source, id, finalFavorite);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {

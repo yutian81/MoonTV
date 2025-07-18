@@ -13,7 +13,7 @@ import {
   getAllPlayRecords,
   subscribeToDataUpdates,
 } from '@/lib/db.client';
-import { getDoubanData } from '@/lib/douban.client';
+import { getDoubanRecommends } from '@/lib/douban.client';
 import { DoubanItem } from '@/lib/types';
 
 import CapsuleSwitch from '@/components/CapsuleSwitch';
@@ -65,8 +65,8 @@ function HomeClient() {
 
         // 并行获取热门电影和热门剧集
         const [moviesData, tvShowsData] = await Promise.all([
-          getDoubanData({ type: 'movie', tag: '热门' }),
-          getDoubanData({ type: 'tv', tag: '热门' }),
+          getDoubanRecommends({ type: 'movie', tag: '热门' }),
+          getDoubanRecommends({ type: 'tv', tag: '热门' }),
         ]);
 
         if (moviesData.code === 200) {
@@ -179,7 +179,7 @@ function HomeClient() {
                   </button>
                 )}
               </div>
-              <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-14 sm:gap-y-20 px-2 sm:grid-cols-[repeat(auto-fill,_minmax(11rem,_1fr))] sm:gap-x-8 sm:px-4'>
+              <div className='justify-start grid grid-cols-3 gap-x-2 gap-y-14 sm:gap-y-20 px-0 sm:px-2 sm:grid-cols-[repeat(auto-fill,_minmax(11rem,_1fr))] sm:gap-x-8'>
                 {favoriteItems.map((item) => (
                   <div key={item.id + item.source} className='w-full'>
                     <VideoCard
@@ -209,7 +209,7 @@ function HomeClient() {
                     热门电影
                   </h2>
                   <Link
-                    href='/douban?type=movie&tag=热门&title=热门电影'
+                    href='/douban?type=movie'
                     className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   >
                     查看更多
@@ -255,7 +255,7 @@ function HomeClient() {
                     热门剧集
                   </h2>
                   <Link
-                    href='/douban?type=tv&tag=热门&title=热门剧集'
+                    href='/douban?type=tv'
                     className='flex items-center text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
                   >
                     查看更多

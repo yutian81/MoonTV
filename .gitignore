@@ -39,3 +39,7 @@ next-env.d.ts
 # next-sitemap
 sitemap.xml
 sitemap-*.xml
+
+# generated files
+src/lib/runtime.ts
+public/manifest.json

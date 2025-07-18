@@ -187,6 +187,7 @@ export class D1Storage implements IStorage {
         year: result.year,
         total_episodes: result.total_episodes,
         save_time: result.save_time,
+        search_title: result.search_title,
       };
     } catch (err) {
       console.error('Failed to get favorite:', err);
@@ -246,6 +247,7 @@ export class D1Storage implements IStorage {
           year: row.year,
           total_episodes: row.total_episodes,
           save_time: row.save_time,
+          search_title: row.search_title,
         };
       });
 

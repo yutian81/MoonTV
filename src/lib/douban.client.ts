@@ -9,18 +9,41 @@ interface DoubanApiResponse {
   }>;
 }
 
-interface DoubanClientParams {
+interface DoubanRecommendsParams {
   type: 'tv' | 'movie';
   tag: string;
   pageSize?: number;
   pageStart?: number;
 }
 
+interface DoubanCategoriesParams {
+  kind: 'tv' | 'movie';
+  category: string;
+  type: string;
+  pageLimit?: number;
+  pageStart?: number;
+}
+
+interface DoubanCategoryApiResponse {
+  total: number;
+  items: Array<{
+    id: string;
+    title: string;
+    pic: {
+      large: string;
+      normal: string;
+    };
+    rating: {
+      value: number;
+    };
+  }>;
+}
+
 /**
  * 浏览器端豆瓣数据获取函数
  */
-export async function fetchDoubanDataClient(
-  params: DoubanClientParams
+export async function fetchDoubanRecommends(
+  params: DoubanRecommendsParams
 ): Promise<DoubanResult> {
   const { type, tag, pageSize = 16, pageStart = 0 } = params;
 
@@ -35,11 +58,6 @@ export async function fetchDoubanDataClient(
 
   if (pageStart < 0) {
     throw new Error('pageStart 不能小于 0');
-  }
-
-  // 处理 top250 特殊情况
-  if (tag === 'top250') {
-    return handleTop250Client(pageStart);
   }
 
   const target = `https://movie.douban.com/j/search_subjects?type=${type}&tag=${tag}&sort=recommend&page_limit=${pageSize}&page_start=${pageStart}`;
@@ -68,63 +86,6 @@ export async function fetchDoubanDataClient(
     };
   } catch (error) {
     throw new Error(`获取豆瓣数据失败: ${(error as Error).message}`);
-  }
-}
-
-/**
- * 处理豆瓣 Top250 数据获取
- */
-async function handleTop250Client(pageStart: number): Promise<DoubanResult> {
-  const target = `https://movie.douban.com/top250?start=${pageStart}&filter=`;
-
-  try {
-    const response = await fetchWithTimeout(target, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        Referer: 'https://movie.douban.com/',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    // 获取 HTML 内容
-    const html = await response.text();
-
-    // 通过正则同时捕获影片 id、标题、封面以及评分
-    const moviePattern =
-      /<div class="item">[\s\S]*?<a[^>]+href="https?:\/\/movie\.douban\.com\/subject\/(\d+)\/"[\s\S]*?<img[^>]+alt="([^"]+)"[^>]*src="([^"]+)"[\s\S]*?<span class="rating_num"[^>]*>([^<]*)<\/span>[\s\S]*?<\/div>/g;
-    const movies: DoubanItem[] = [];
-    let match;
-
-    while ((match = moviePattern.exec(html)) !== null) {
-      const id = match[1];
-      const title = match[2];
-      const cover = match[3];
-      const rate = match[4] || '';
-
-      // 处理图片 URL，确保使用 HTTPS
-      const processedCover = cover.replace(/^http:/, 'https:');
-
-      movies.push({
-        id: id,
-        title: title,
-        poster: processedCover,
-        rate: rate,
-      });
-    }
-
-    return {
-      code: 200,
-      message: '获取成功',
-      list: movies,
-    };
-  } catch (error) {
-    throw new Error(`获取豆瓣 Top250 数据失败: ${(error as Error).message}`);
   }
 }
 
@@ -184,12 +145,12 @@ export function shouldUseDoubanClient(): boolean {
 /**
  * 统一的豆瓣数据获取函数，根据代理设置选择使用服务端 API 或客户端代理获取
  */
-export async function getDoubanData(
-  params: DoubanClientParams
+export async function getDoubanRecommends(
+  params: DoubanRecommendsParams
 ): Promise<DoubanResult> {
   if (shouldUseDoubanClient()) {
     // 使用客户端代理获取（当设置了代理 URL 时）
-    return fetchDoubanDataClient(params);
+    return fetchDoubanRecommends(params);
   } else {
     // 使用服务端 API（当没有设置代理 URL 时）
     const { type, tag, pageSize = 16, pageStart = 0 } = params;
@@ -199,6 +160,84 @@ export async function getDoubanData(
 
     if (!response.ok) {
       throw new Error('获取豆瓣数据失败');
+    }
+
+    return response.json();
+  }
+}
+
+/**
+ * 浏览器端豆瓣分类数据获取函数
+ */
+export async function fetchDoubanCategories(
+  params: DoubanCategoriesParams
+): Promise<DoubanResult> {
+  const { kind, category, type, pageLimit = 20, pageStart = 0 } = params;
+
+  // 验证参数
+  if (!['tv', 'movie'].includes(kind)) {
+    throw new Error('kind 参数必须是 tv 或 movie');
+  }
+
+  if (!category || !type) {
+    throw new Error('category 和 type 参数不能为空');
+  }
+
+  if (pageLimit < 1 || pageLimit > 100) {
+    throw new Error('pageLimit 必须在 1-100 之间');
+  }
+
+  if (pageStart < 0) {
+    throw new Error('pageStart 不能小于 0');
+  }
+
+  const target = `https://m.douban.com/rexxar/api/v2/subject/recent_hot/${kind}?start=${pageStart}&limit=${pageLimit}&category=${category}&type=${type}`;
+
+  try {
+    const response = await fetchWithTimeout(target);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+    const doubanData: DoubanCategoryApiResponse = await response.json();
+
+    // 转换数据格式
+    const list: DoubanItem[] = doubanData.items.map((item) => ({
+      id: item.id,
+      title: item.title,
+      poster: item.pic?.normal || item.pic?.large || '',
+      rate: item.rating?.value ? item.rating.value.toFixed(1) : '',
+    }));
+
+    return {
+      code: 200,
+      message: '获取成功',
+      list: list,
+    };
+  } catch (error) {
+    throw new Error(`获取豆瓣分类数据失败: ${(error as Error).message}`);
+  }
+}
+
+/**
+ * 统一的豆瓣分类数据获取函数，根据代理设置选择使用服务端 API 或客户端代理获取
+ */
+export async function getDoubanCategories(
+  params: DoubanCategoriesParams
+): Promise<DoubanResult> {
+  if (shouldUseDoubanClient()) {
+    // 使用客户端代理获取（当设置了代理 URL 时）
+    return fetchDoubanCategories(params);
+  } else {
+    // 使用服务端 API（当没有设置代理 URL 时）
+    const { kind, category, type, pageLimit = 20, pageStart = 0 } = params;
+    const response = await fetch(
+      `/api/douban/categories?kind=${kind}&category=${category}&type=${type}&limit=${pageLimit}&start=${pageStart}`
+    );
+
+    if (!response.ok) {
+      throw new Error('获取豆瓣分类数据失败');
     }
 
     return response.json();

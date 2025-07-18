@@ -50,6 +50,7 @@ interface SiteConfig {
   Announcement: string;
   SearchDownstreamMaxPage: number;
   SiteInterfaceCacheTime: number;
+  ImageProxy: string;
 }
 
 // 视频源数据类型
@@ -947,6 +948,7 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
     Announcement: '',
     SearchDownstreamMaxPage: 1,
     SiteInterfaceCacheTime: 7200,
+    ImageProxy: '',
   });
   // 保存状态
   const [saving, setSaving] = useState(false);
@@ -958,7 +960,10 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
 
   useEffect(() => {
     if (config?.SiteConfig) {
-      setSiteSettings(config.SiteConfig);
+      setSiteSettings({
+        ...config.SiteConfig,
+        ImageProxy: config.SiteConfig.ImageProxy || '',
+      });
     }
   }, [config]);
 
@@ -1090,6 +1095,41 @@ const SiteConfigComponent = ({ config }: { config: AdminConfig | null }) => {
           }
           className='w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent'
         />
+      </div>
+
+      {/* 图片代理 */}
+      <div>
+        <label
+          className={`block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 ${
+            isD1Storage ? 'opacity-50' : ''
+          }`}
+        >
+          图片代理前缀
+          {isD1Storage && (
+            <span className='ml-2 text-xs text-gray-500 dark:text-gray-400'>
+              (D1 环境下不可修改)
+            </span>
+          )}
+        </label>
+        <input
+          type='text'
+          placeholder='例如: https://imageproxy.example.com/?url='
+          value={siteSettings.ImageProxy}
+          onChange={(e) =>
+            !isD1Storage &&
+            setSiteSettings((prev) => ({
+              ...prev,
+              ImageProxy: e.target.value,
+            }))
+          }
+          disabled={isD1Storage}
+          className={`w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent ${
+            isD1Storage ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        />
+        <p className='mt-1 text-xs text-gray-500 dark:text-gray-400'>
+          用于代理图片访问，解决跨域或访问限制问题。留空则不使用代理。
+        </p>
       </div>
 
       {/* 操作按钮 */}

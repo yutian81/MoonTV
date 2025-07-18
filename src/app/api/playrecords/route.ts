@@ -62,7 +62,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await db.savePlayRecord(authInfo.username, source, id, record);
+    const finalRecord = {
+      ...record,
+      save_time: record.save_time ?? Date.now(),
+    } as PlayRecord;
+
+    await db.savePlayRecord(authInfo.username, source, id, finalRecord);
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {
